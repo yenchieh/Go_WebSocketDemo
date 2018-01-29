@@ -15,8 +15,8 @@
 
 </div>
 <hr/>
-<input type="text" id="inputBox" placeholder="Message" />
-<input type="submit" />
+<input type="text" id="inputbox" placeholder="Message" />
+<input type="submit" id="submit" />
 </body>
 
 <script>
@@ -31,6 +31,13 @@
     socket.onmessage = (evt) => {
       console.log(`Message: ${evt.data}`);
     };
+
+    const inputbox = document.getElementById('inputbox');
+    const submitButton = document.getElementById('submit');
+    submitButton.addEventListener('click', () => {
+      socket.send(inputbox.value);
+    });
+
   })();
 
 </script>
