@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat Room</title>
+</head>
+<body>
+
+<header>
+    <h1>Bowery Golang Meetup Chat Room</h1>
+</header>
+<hr/>
+
+<div class="chat">
+
+</div>
+<hr/>
+<input type="text" id="inputBox" placeholder="Message" />
+<input type="submit" />
+</body>
+
+<script>
+  (function() {
+    const socket = new WebSocket("ws://localhost:8080/chat/ws");
+    socket.onclose = function(evt) {
+      console.error("Connection Closed");
+    };
+    socket.onopen = function(evt) {
+      console.log("Connection established");
+    };
+    socket.onmessage = (evt) => {
+      console.log(`Message: ${evt.data}`);
+    };
+  })();
+
+</script>
+</html>
