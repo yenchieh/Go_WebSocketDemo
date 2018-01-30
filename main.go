@@ -33,9 +33,11 @@ func main() {
 
 var clients = make(map[*websocket.Conn]string)
 var incomingMessage = make(chan string)
+var connectionNum = 0
 
-func connect(connection *websocket.Conn) {
-	clients[connection] = fmt.Sprintf("Client-%d", len(clients))
+func connect(connection *websocket.Conn) {  
+	connectionNum++
+	clients[connection] = fmt.Sprintf("Client-%d", connectionNum)
 	fmt.Println("Client Added")
 	for {
 		var message string
@@ -47,6 +49,8 @@ func connect(connection *websocket.Conn) {
 		}
 		fmt.Printf("Received Message From %s \n - Message: %s", clients[connection], message)
 
+		message = fmt.Sprintf("%s: %s", clients[connection], message)
+
 		incomingMessage <- message
 	}
 }
@@ -55,8 +59,8 @@ func broadcastMessage() {
 	for {
 		message := <-incomingMessage
 		fmt.Println(message)
-		for client, name := range clients {
-			if err := websocket.Message.Send(client, fmt.Sprintf("%s : %s", name, message)); err != nil {
+		for client := range clients {
+			if err := websocket.Message.Send(client, message); err != nil {
 				log.Println(err)
 				delete(clients, client)
 				break
