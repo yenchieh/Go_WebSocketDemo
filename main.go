@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"golang.org/x/net/websocket"
 
@@ -12,13 +13,18 @@ import (
 )
 
 func main() {
+
+	address := os.Getenv("ADDRESS")
+	port := os.Getenv("PORT")
+
 	router := gin.Default()
 
 	router.LoadHTMLGlob("view/*")
 
-	// This handler will match /user/john but will not match neither /user/ or /user
 	router.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", nil)
+		c.HTML(http.StatusOK, "index.html", gin.H{
+			"Address": fmt.Sprintf("%s%s", address, port),
+		})
 	})
 
 	router.GET("/chat/ws", func(c *gin.Context) {
@@ -28,30 +34,51 @@ func main() {
 
 	go broadcastMessage()
 
-	router.Run(":8080")
+	router.Run(port)
 }
 
-var clients = make(map[*websocket.Conn]string)
 var incomingMessage = make(chan string)
 var connectionNum = 0
 
-func connect(connection *websocket.Conn) {  
+type ChatUser struct {
+	Name string
+}
+
+const (
+	UserMessage = "MESSAGE"
+	UserName    = "NAME"
+)
+
+type ReceiveMessage struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
+var chatUsers = make(map[*websocket.Conn]ChatUser)
+
+func connect(connection *websocket.Conn) {
 	connectionNum++
-	clients[connection] = fmt.Sprintf("Client-%d", connectionNum)
+	chatUser := ChatUser{
+		Name: "",
+	}
+	chatUsers[connection] = chatUser
 	fmt.Println("Client Added")
 	for {
-		var message string
+		var receiveMessage ReceiveMessage
 
-		if err := websocket.Message.Receive(connection, &message); err != nil {
+		if err := websocket.JSON.Receive(connection, &receiveMessage); err != nil {
 			log.Println(err)
-			delete(clients, connection)
+			delete(chatUsers, connection)
 			break
 		}
-		fmt.Printf("Received Message From %s \n - Message: %s", clients[connection], message)
 
-		message = fmt.Sprintf("%s: %s", clients[connection], message)
+		fmt.Printf("\n%#v\n", receiveMessage)
+		if receiveMessage.Type == UserMessage {
+			incomingMessage <- fmt.Sprintf("%s: %s", chatUser.Name, receiveMessage.Text)
+		} else if receiveMessage.Type == UserName {
+			chatUser.Name = receiveMessage.Text
+		}
 
-		incomingMessage <- message
 	}
 }
 
@@ -59,10 +86,10 @@ func broadcastMessage() {
 	for {
 		message := <-incomingMessage
 		fmt.Println(message)
-		for client := range clients {
-			if err := websocket.Message.Send(client, message); err != nil {
+		for connection := range chatUsers {
+			if err := websocket.Message.Send(connection, message); err != nil {
 				log.Println(err)
-				delete(clients, client)
+				delete(chatUsers, connection)
 				break
 			}
 		}

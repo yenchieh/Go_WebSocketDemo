@@ -55,7 +55,7 @@
     </div>
     <div class="bottom">
         <input type="submit" id="submit" />
-        <input type="text" id="inputbox" placeholder="Message" />
+        <input type="text" id="inputbox" placeholder="Your Name" />
     </div>
 
 </div>
@@ -64,10 +64,11 @@
 
 <script>
   (function() {
+    let name;
     const inputbox = document.getElementById('inputbox');
     const submitButton = document.getElementById('submit');
     const chat = document.getElementById('chat');
-    const socket = new WebSocket("ws://localhost:8080/chat/ws");
+    const socket = new WebSocket("ws://{{ .Address }}/chat/ws");
 
     socket.onclose = function(evt) {
       console.error("Connection Closed");
@@ -91,7 +92,20 @@
     });
 
     function sendMessage() {
-      socket.send(inputbox.value);
+      let message;
+      if(!name) {
+        message = {
+          type: "NAME",
+        };
+        inputbox.setAttribute('placeholder', 'Message');
+        name = inputbox.value;
+      } else {
+        message = {
+          type: "MESSAGE",
+        }
+      }
+      message.text = inputbox.value;
+      socket.send(JSON.stringify(message));
       inputbox.value = "";
     }
 
