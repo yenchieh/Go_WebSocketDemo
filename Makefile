@@ -1,4 +1,4 @@
-.PHONY: deps vet test dev build clean push-image
+.PHONY: deps dev build clean push-image
 
 deps:
 	dep ensure
@@ -14,3 +14,6 @@ build-image:
 
 push-image: build build-image
 	docker push yenchieh/websocket_demo:latest
+
+run:
+	go run main.go

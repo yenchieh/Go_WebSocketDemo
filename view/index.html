@@ -17,13 +17,14 @@
         border-bottom: 1px solid #BDBDBD;
         box-shadow: 0 1px 2px 0 hsla(0,0%,74%,.9);
         color: #4c7ebf;
+        background-color: white;
     }
     .container {
         display: flex;
         flex-direction: column;
         justify-content: flex-end;
         height: 100%;
-        width: 100%;
+        width: 89%;
         position: absolute;
         top: 0;
     }
@@ -42,7 +43,24 @@
     #chat {
         padding: 0 20px;
         line-height: 25px;
-        font-size: 18px;
+        font-size: 20px;
+        color: white;
+    }
+    .background {
+        position: absolute;
+        background-color: #333333;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+    }
+    .onlineUsers {
+        position: fixed;
+        right: 0;
+        width: 150px;
+        background-color: white;
+    }
+    .onlineUsers > div {
+        padding: 10px;
     }
 </style>
 <body>
@@ -50,6 +68,7 @@
 <div class="title">Bowery Golang Meetup - Chat Room</div>
 
 <div class="container">
+    <div class="background"></div>
     <div id="chat">
 
     </div>
@@ -57,6 +76,9 @@
         <input type="submit" id="submit" />
         <input type="text" id="inputbox" placeholder="Your Name" />
     </div>
+
+</div>
+<div class="onlineUsers" id="onlineUsers">
 
 </div>
 
@@ -68,6 +90,7 @@
     const inputbox = document.getElementById('inputbox');
     const submitButton = document.getElementById('submit');
     const chat = document.getElementById('chat');
+    const onlineUsers = document.getElementById('onlineUsers');
     const socket = new WebSocket("ws://{{ .Address }}/chat/ws");
 
     socket.onclose = function(evt) {
@@ -78,9 +101,31 @@
     };
     socket.onmessage = (evt) => {
       console.log(`Message: ${evt.data}`);
-      const message = document.createElement('div');
-      message.innerHTML = evt.data;
-      chat.appendChild(message);
+      const msg = JSON.parse(evt.data);
+      switch(msg.type) {
+        case 'message' :
+          const message = document.createElement('div');
+          message.innerHTML = msg.message;
+          chat.appendChild(message);
+          break;
+        case 'online':
+          while (onlineUsers.firstChild) {
+            onlineUsers.removeChild(onlineUsers.firstChild);
+          }
+          for(const user of msg.userList) {
+            const userEle = document.createElement('div');
+            userEle.setAttribute('id', user.id);
+            userEle.innerHTML = user.name;
+            onlineUsers.appendChild(userEle);
+          }
+
+          break;
+        case 'offline':
+          const removeUser = document.getElementById(msg.userId);
+          removeUser.parentNode.removeChild(removeUser);
+          break;
+      }
+
     };
     submitButton.addEventListener('click', () => {
       sendMessage();
