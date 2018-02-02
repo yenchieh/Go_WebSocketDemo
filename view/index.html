@@ -24,7 +24,7 @@
         flex-direction: column;
         justify-content: flex-end;
         height: 100%;
-        width: 89%;
+        width: 100%;
         position: absolute;
         top: 0;
     }
@@ -35,9 +35,6 @@
         width: 100%;
         height: 50px;
         padding: 0 20px;
-        font-size: 25px;
-    }
-    #submit {
         font-size: 25px;
     }
     #chat {
@@ -58,6 +55,7 @@
         right: 0;
         width: 150px;
         background-color: white;
+        height: 100%;
     }
     .onlineUsers > div {
         padding: 10px;
@@ -73,7 +71,6 @@
 
     </div>
     <div class="bottom">
-        <input type="submit" id="submit" />
         <input type="text" id="inputbox" placeholder="Your Name" />
     </div>
 
@@ -88,7 +85,6 @@
   (function() {
     let name;
     const inputbox = document.getElementById('inputbox');
-    const submitButton = document.getElementById('submit');
     const chat = document.getElementById('chat');
     const onlineUsers = document.getElementById('onlineUsers');
     const socket = new WebSocket("ws://{{ .Address }}/chat/ws");
@@ -127,9 +123,6 @@
       }
 
     };
-    submitButton.addEventListener('click', () => {
-      sendMessage();
-    });
     inputbox.addEventListener('keydown', (e) => {
       if(e.key === 'Enter') {
         sendMessage();

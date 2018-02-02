@@ -43,8 +43,9 @@ func main() {
 	router.Run(port)
 }
 
-var incomingMessage = make(chan SendMessage)
-var connectionNum = 0
+/**
+ * Chat Room
+ */
 
 type ChatUser struct {
 	ID   string `json:"id"`
@@ -68,6 +69,8 @@ type SendMessage struct {
 	UserList []ChatUser `json:"userList"`
 }
 
+var incomingMessage = make(chan SendMessage)
+var connectionNum = 0
 var chatUsers = make(map[*websocket.Conn]*ChatUser)
 
 func connect(connection *websocket.Conn) {
@@ -101,7 +104,7 @@ func connect(connection *websocket.Conn) {
 		} else if receiveMessage.Type == UserName {
 			chatUser.Name = receiveMessage.Text
 
-			userList := []ChatUser{}
+			var userList []ChatUser
 			for _, g := range chatUsers {
 				userList = append(userList, *g)
 			}
