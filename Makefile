@@ -1,4 +1,4 @@
-.PHONY: deps dev build clean push-image
+.PHONY: deps dev build clean push-image run run-docker
 
 deps:
 	dep ensure
@@ -10,10 +10,13 @@ clean:
 	rm -rf build/*
 
 build-image:
-	docker build --rm -t yenchieh/websocket_demo:latest .
+	docker build --rm -t websocket_demo:latest .
 
 push-image: build build-image
-	docker push yenchieh/websocket_demo:latest
+	docker push websocket_demo:latest
 
 run:
 	go run main.go
+
+run-docker: build build-image
+	docker run --rm -d -p 8080:8080 websocket_demo:latest
