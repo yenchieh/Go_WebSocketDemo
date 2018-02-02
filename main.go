@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"golang.org/x/net/websocket"
 
@@ -12,13 +13,24 @@ import (
 )
 
 func main() {
+
+	address := os.Getenv("ADDRESS")
+	port := os.Getenv("PORT")
+	if address == "" {
+		address = "localhost"
+	}
+	if port == "" {
+		port = ":8080"
+	}
+
 	router := gin.Default()
 
 	router.LoadHTMLGlob("view/*")
 
-	// Chat room page
 	router.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", nil)
+		c.HTML(http.StatusOK, "index.html", gin.H{
+			"Address": fmt.Sprintf("%s%s", address, port),
+		})
 	})
 
 	// WebSocket
@@ -30,34 +42,84 @@ func main() {
 	// Create goroutine to listen message channel and broadcast it to all of connection
 	go broadcastMessage()
 
-	router.Run(":8080")
+	router.Run(port)
 }
 
 /**
- * Chat Room handler
- * Client map store client number (ID) using connection as key
+ * Chat Room
  */
-var clients = make(map[*websocket.Conn]string)
-var incomingMessage = make(chan string)
+
+type ChatUser struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+const (
+	UserMessage = "MESSAGE"
+	UserName    = "NAME"
+)
+
+type ReceiveMessage struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
+type SendMessage struct {
+	UserID   string     `json:"userId"`
+	Type     string     `json:"type"`
+	Message  string     `json:"message"`
+	UserList []ChatUser `json:"userList"`
+}
+
+var incomingMessage = make(chan SendMessage)
+
 var connectionNum = 0
+var chatUsers = make(map[*websocket.Conn]*ChatUser)
 
 func connect(connection *websocket.Conn) {
 	connectionNum++
-	clients[connection] = fmt.Sprintf("Client-%d", connectionNum)
-	fmt.Printf("\n%s Added\n", clients[connection])
-	for {
-		var message string
+	chatUser := ChatUser{
+		ID:   fmt.Sprintf("%d", connectionNum),
+		Name: "",
+	}
+	chatUsers[connection] = &chatUser
 
-		if err := websocket.Message.Receive(connection, &message); err != nil {
-			log.Println(err)
-			delete(clients, connection)
+	fmt.Println("Client Added")
+
+	for {
+		var receiveMessage ReceiveMessage
+
+		if err := websocket.JSON.Receive(connection, &receiveMessage); err != nil {
+			delete(chatUsers, connection)
+			message := SendMessage{
+				UserID: chatUser.ID,
+				Type:   "offline",
+			}
+			incomingMessage <- message
 			break
 		}
-		fmt.Printf("Received Message From %s \n - Message: %s\n", clients[connection], message)
 
-		message = fmt.Sprintf("%s: %s", clients[connection], message)
+		fmt.Printf("\n%#v\n", receiveMessage)
+		if receiveMessage.Type == UserMessage {
+			incomingMessage <- SendMessage{
+				Type:    "message",
+				Message: fmt.Sprintf("%s: %s", chatUser.Name, receiveMessage.Text),
+			}
+		} else if receiveMessage.Type == UserName {
+			chatUser.Name = receiveMessage.Text
 
-		incomingMessage <- message
+			var userList []ChatUser
+			for _, g := range chatUsers {
+				userList = append(userList, *g)
+			}
+
+			incomingMessage <- SendMessage{
+				Type:     "online",
+				UserID:   chatUser.ID,
+				UserList: userList,
+			}
+		}
+
 	}
 }
 
@@ -65,10 +127,10 @@ func broadcastMessage() {
 	for {
 		message := <-incomingMessage
 		fmt.Println(message)
-		for client := range clients {
-			if err := websocket.Message.Send(client, message); err != nil {
+		for connection := range chatUsers {
+			if err := websocket.JSON.Send(connection, message); err != nil {
 				log.Println(err)
-				delete(clients, client)
+				delete(chatUsers, connection)
 				break
 			}
 		}
