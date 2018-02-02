@@ -23,3 +23,8 @@ make docker-image
 ```
 make push-image
 ```
+- Run the docker image
+```
+docker pull ${repoName}/websocket_demo:latest
+docker run -d -e ADDRESS='${Your Server IP}' -e PORT=':8443' -p 8443:8443 ${repoName}/websocket_demo:latest
+```
