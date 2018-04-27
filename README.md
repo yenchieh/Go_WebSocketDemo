@@ -1,7 +1,5 @@
 # Demo Chat room with WebSocket
 
-This is demo for the [Bowery Golang Meetup](https://www.meetup.com/Bowery-Go/events/246465456/)
-
 ## This project is using
 - Golang
 - [Gin Framework](https://github.com/gin-gonic/gin)
