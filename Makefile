@@ -1,7 +1,7 @@
 .PHONY: deps dev build clean push-image run run-docker
 
 deps:
-	dep ensure
+	go mod tidy
 
 build: clean deps
 	GOOS=linux go build -o ./build/main ./*.go
